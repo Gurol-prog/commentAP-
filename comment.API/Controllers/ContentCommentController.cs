@@ -17,7 +17,7 @@ namespace Comment.API.Controllers
             _commentService = commentService;
         }
 
-        
+        //Contentdeki tüm ana yorumları getir
         [HttpGet("content/{contentId}/comments")]
         public async Task<IActionResult> GetCommentsByContentId(string contentId, [FromQuery] string userId)
         {
@@ -25,14 +25,14 @@ namespace Comment.API.Controllers
             return Ok(comments);
         }
 
-        
+        //Bir ana yorumun tüm cevaplarını getir
         [HttpGet("comment/{parentCommentId}/replies")]
         public async Task<IActionResult> GetRepliesByParentId(string parentCommentId, [FromQuery] string userId)
         {
             var replies = await _commentService.GetRepliesByParentIdAsync(parentCommentId, userId);
             return Ok(replies);
         }
-
+        //Yorum oluşturma
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCommentRequest request)
         {
@@ -53,21 +53,21 @@ namespace Comment.API.Controllers
             var created = await _commentService.CreateCommentAsync(comment);
             return Ok(created);
         }
-
+        //yorum güncelleme
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] UpdateCommentRequest request)
         {
             var result = await _commentService.UpdateCommentAsync(id, request.Comment);
             return result ? Ok("Yorum güncellendi.") : NotFound("Yorum bulunamadı.");
         }
-
+        // Yorumu soft silme
         [HttpDelete("soft/{id}")]
         public async Task<IActionResult> SoftDelete(string id)
         {
             var result = await _commentService.SoftDeleteCommentAsync(id);
             return result ? Ok("Yorum silindi.") : NotFound("Yorum bulunamadı.");
         }
-
+        //Yorumu tamamen silme
         [HttpDelete("{id}")]
         public async Task<IActionResult> HardDelete(string id)
         {
@@ -75,7 +75,7 @@ namespace Comment.API.Controllers
             return result ? Ok("Yorum tamamen silindi.") : NotFound("Yorum bulunamadı.");
         }
 
-        
+        //Yoruma dislik/like ekleme
        [HttpPost("comment/{commentId}/like")]
         public async Task<IActionResult> ToggleLike(string commentId, [FromQuery] string userId, [FromQuery] VoteType voteType)
         {
@@ -99,7 +99,7 @@ namespace Comment.API.Controllers
             });
         }
 
-        
+        //Bir kullanıcı bir yorumu beğenip beğenmediği kontrol et
         [HttpGet("comment/{commentId}/like-status")]
         public async Task<IActionResult> GetLikeStatus(string commentId, [FromQuery] string userId)
         {
@@ -107,7 +107,7 @@ namespace Comment.API.Controllers
             return Ok(status ?? "none");
         }
 
-        
+        //bir contente ait tüm yorumların sayısını getirir.
         [HttpGet("content/{contentId}/count")]
         public async Task<IActionResult> GetCommentCount(string contentId)
         {
