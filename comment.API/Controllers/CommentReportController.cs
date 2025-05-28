@@ -237,5 +237,27 @@ namespace Comment.API.Controllers
                 return StatusCode(500, response);
             }
         }
+        [HttpGet("user-reports-details/{userId}")]
+        public async Task<IActionResult> GetUserReportsWithDetails(string userId)
+        {
+            try
+            {
+                var reports = await _reportService.GetUserReportsWithDetailsAsync(userId);
+                var response = ApiResponse<object>.SuccessResponse(
+                    reports,
+                    "Kullanıcının şikayet detayları başarıyla getirildi."
+                );
+                return Ok(response);
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Kullanıcının şikayet detayları getirilirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
+        }
     }
 }

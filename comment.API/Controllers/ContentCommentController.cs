@@ -123,7 +123,7 @@ namespace Comment.API.Controllers
         }
         //yorum güncelleme
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<string>>> Update(string id, [FromBody] UpdateCommentRequest request)
+        public async Task<ActionResult<ApiResponse<string>>> Update(string id,[FromQuery] string userId, [FromBody] UpdateCommentRequest request)
         {
             try
             {
@@ -143,7 +143,7 @@ namespace Comment.API.Controllers
                     return BadRequest(validationResponse);
                 }
 
-                var result = await _commentService.UpdateCommentAsync(id, request.Comment);
+                var result = await _commentService.UpdateCommentAsync(id, request.Comment, userId);
 
                 if (result)
                 {
@@ -175,11 +175,11 @@ namespace Comment.API.Controllers
         }
         // Yorumu soft silme
         [HttpDelete("soft/{id}")]
-        public async Task<ActionResult<ApiResponse<string>>> SoftDelete(string id)
+        public async Task<ActionResult<ApiResponse<string>>> SoftDelete(string id, [FromQuery] string userId)
         {
             try
             {
-                var result = await _commentService.SoftDeleteCommentAsync(id);
+                var result = await _commentService.SoftDeleteCommentAsync(id, userId);
 
                 if (result)
                 {
@@ -192,43 +192,7 @@ namespace Comment.API.Controllers
                 else
                 {
                     var notFoundResponse = ApiResponse<string>.ErrorResponse(
-                        new List<string> { "Belirtilen ID ile yorum bulunamadı" },
-                        "Yorum bulunamadı",
-                        404
-                    );
-                    return NotFound(notFoundResponse);
-                }
-            }
-            catch (Exception ex)
-            {
-                var errorResponse = ApiResponse<string>.ErrorResponse(
-                    new List<string> { ex.Message },
-                    "Yorum silinirken hata oluştu",
-                    500
-                );
-                return StatusCode(500, errorResponse);
-            }
-        }
-        //Yorumu tamamen silme
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<ApiResponse<string>>> HardDelete(string id)
-        {
-            try
-            {
-                var result = await _commentService.DeleteCommentAsync(id);
-
-                if (result)
-                {
-                    var successResponse = ApiResponse<string>.SuccessResponse(
-                        "Kalıcı silme işlemi başarılı",
-                        "Yorum tamamen silindi"
-                    );
-                    return Ok(successResponse);
-                }
-                else
-                {
-                    var notFoundResponse = ApiResponse<string>.ErrorResponse(
-                        new List<string> { "Belirtilen ID ile yorum bulunamadı" },
+                        new List<string> { "Belirtilen ID ile yorum bulunamadı veya size ait değil" },
                         "Yorum bulunamadı",
                         404
                     );
