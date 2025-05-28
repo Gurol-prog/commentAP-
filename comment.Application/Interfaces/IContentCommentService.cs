@@ -1,4 +1,5 @@
 using Comment.Domain.Entities;
+using Comment.Domain.DTOs;
 
 namespace Comment.Application.Interfaces
 {
@@ -34,5 +35,9 @@ namespace Comment.Application.Interfaces
             string userId,
             string commentId
         );
+
+        Task<List<ContentComment>> FilterCommentsAsync(CommentFilterRequest filterRequest);
+
+        
     }
 }
