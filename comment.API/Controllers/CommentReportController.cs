@@ -1,5 +1,6 @@
 using Comment.Application.Interfaces;
 using Comment.Domain.Entities;
+using Comment.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 
@@ -31,15 +32,29 @@ namespace Comment.API.Controllers
                 };
 
                 var result = await _reportService.CreateReportAsync(report);
-                return Ok(new { message = "Şikayet alındı.", reportId = result.Id });
+                var response = ApiResponse<object>.SuccessResponse(
+                    new { message = "Şikayet alındı.", reportId = result.Id },
+                    "Şikayet başarıyla gönderildi."
+                );
+                return Ok(response);
             }
-            catch (MongoWriteException ex) when (ex.WriteError?.Code == 11000) // Duplicate key error
+            catch (MongoWriteException ex) when (ex.WriteError?.Code == 11000)
             {
-                return BadRequest("Bu yorumu zaten şikayet ettiniz.");
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Bu yorumu zaten şikayet ettiniz." },
+                    "Şikayet gönderilemedi.",
+                    400
+                );
+                return BadRequest(response);
             }
             catch (Exception)
             {
-                return StatusCode(500, "Şikayet gönderilirken bir hata oluştu.");
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Şikayet gönderilirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
             }
         }
 
@@ -47,48 +62,180 @@ namespace Comment.API.Controllers
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingReports()
         {
-            var reports = await _reportService.GetUnreviewedReportsAsync();
-            return Ok(reports);
+            try
+            {
+                var reports = await _reportService.GetUnreviewedReportsAsync();
+                var response = ApiResponse<object>.SuccessResponse(
+                    reports,
+                    "Bekleyen şikayetler başarıyla getirildi."
+                );
+                return Ok(response);
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Bekleyen şikayetler getirilirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
         }
 
         // Admin: Belirli bir yoruma ait tüm şikayetleri getir
         [HttpGet("by-comment/{commentId}")]
         public async Task<IActionResult> GetReportsByCommentId(string commentId)
         {
-            var reports = await _reportService.GetReportsByCommentIdAsync(commentId);
-            return Ok(reports);
+            try
+            {
+                var reports = await _reportService.GetReportsByCommentIdAsync(commentId);
+                var response = ApiResponse<object>.SuccessResponse(
+                    reports,
+                    "Yoruma ait şikayetler başarıyla getirildi."
+                );
+                return Ok(response);
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Yoruma ait şikayetler getirilirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
         }
 
         // Admin: Şikayet detaylarını getir
         [HttpGet("{reportId}")]
         public async Task<IActionResult> GetReportById(string reportId)
         {
-            var report = await _reportService.GetReportByIdAsync(reportId);
-            return report is not null ? Ok(report) : NotFound("Şikayet bulunamadı.");
+            try
+            {
+                var report = await _reportService.GetReportByIdAsync(reportId);
+                if (report is not null)
+                {
+                    var response = ApiResponse<object>.SuccessResponse(
+                        report,
+                        "Şikayet detayları başarıyla getirildi."
+                    );
+                    return Ok(response);
+                }
+                else
+                {
+                    var response = ApiResponse<object>.ErrorResponse(
+                        new List<string> { "Şikayet bulunamadı." },
+                        "Şikayet bulunamadı.",
+                        404
+                    );
+                    return NotFound(response);
+                }
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Şikayet detayları getirilirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
         }
 
         // Admin: Şikayete cevap ver ve incelendi olarak işaretle
         [HttpPut("review")]
         public async Task<IActionResult> ReviewReport([FromQuery] string reportId, [FromQuery] string adminResponse)
         {
-            var success = await _reportService.ReviewReportAsync(reportId, adminResponse);
-            return success ? Ok("Şikayet incelendi ve yanıt gönderildi.") : NotFound("Şikayet bulunamadı.");
+            try
+            {
+                var success = await _reportService.ReviewReportAsync(reportId, adminResponse);
+                if (success)
+                {
+                    var response = ApiResponse<object>.SuccessResponse(
+                        null,
+                        "Şikayet incelendi ve yanıt gönderildi."
+                    );
+                    return Ok(response);
+                }
+                else
+                {
+                    var response = ApiResponse<object>.ErrorResponse(
+                        new List<string> { "Şikayet bulunamadı." },
+                        "Şikayet bulunamadı.",
+                        404
+                    );
+                    return NotFound(response);
+                }
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Şikayet incelenirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
         }
 
         // Admin: Şikayeti deaktif et (kapat)
         [HttpPut("deactivate/{reportId}")]
         public async Task<IActionResult> DeactivateReport(string reportId)
         {
-            var success = await _reportService.DeactivateReportAsync(reportId);
-            return success ? Ok("Şikayet kapatıldı.") : NotFound("Şikayet bulunamadı.");
+            try
+            {
+                var success = await _reportService.DeactivateReportAsync(reportId);
+                if (success)
+                {
+                    var response = ApiResponse<object>.SuccessResponse(
+                        null,
+                        "Şikayet kapatıldı."
+                    );
+                    return Ok(response);
+                }
+                else
+                {
+                    var response = ApiResponse<object>.ErrorResponse(
+                        new List<string> { "Şikayet bulunamadı." },
+                        "Şikayet bulunamadı.",
+                        404
+                    );
+                    return NotFound(response);
+                }
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Şikayet kapatılırken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
         }
 
         // Kullanıcının şikayet ettiği yorumları getir
         [HttpGet("user-reports/{userId}")]
         public async Task<IActionResult> GetUserReportedComments(string userId)
         {
-            var commentIds = await _reportService.GetReportedCommentIdsByUserAsync(userId);
-            return Ok(commentIds);
+            try
+            {
+                var commentIds = await _reportService.GetReportedCommentIdsByUserAsync(userId);
+                var response = ApiResponse<object>.SuccessResponse(
+                    commentIds,
+                    "Kullanıcının şikayet ettiği yorumlar başarıyla getirildi."
+                );
+                return Ok(response);
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Kullanıcının şikayet ettiği yorumlar getirilirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
         }
     }
 }

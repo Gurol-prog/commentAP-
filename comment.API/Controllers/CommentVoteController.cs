@@ -1,5 +1,5 @@
 using Comment.Application.Interfaces;
-using Comment.Domain.Enums; // ✅ Enum için eklendi
+using Comment.Domain.Enums; 
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 
@@ -16,7 +16,7 @@ namespace Comment.API.Controllers
             _voteService = voteService;
         }
 
-        // ✅ Enum kullanımı - Swagger'da dropdown olarak görünecek
+        
         [HttpPost("toggle")]
         public async Task<IActionResult> ToggleVote([FromQuery] string userId, [FromQuery] string commentId, [FromQuery] VoteType voteType)
         {
