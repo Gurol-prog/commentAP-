@@ -1,5 +1,6 @@
 using Comment.Application.Interfaces;
 using Comment.Domain.Entities;
+using Comment.Domain.DTOs;
 using MongoDB.Driver;
 
 namespace Comment.Infrastructure.Services
@@ -80,6 +81,74 @@ namespace Comment.Infrastructure.Services
                 .ToListAsync();
 
             return reports;
+        }
+        public async Task<object> FilterCommentReportsAsync(FilterCommentReportsRequest request)
+        {
+            var builder = Builders<CommentReport>.Filter;
+            var filters = new List<FilterDefinition<CommentReport>>();
+
+            // ReporterUserId filtresi
+            if (!string.IsNullOrEmpty(request.ReporterUserId))
+                filters.Add(builder.Eq(r => r.ReporterUserId, request.ReporterUserId));
+
+            // CommentId filtresi
+            if (!string.IsNullOrEmpty(request.CommentId))
+                filters.Add(builder.Eq(r => r.CommentId, request.CommentId));
+
+            // Reason filtresi
+            if (!string.IsNullOrEmpty(request.Reason))
+                filters.Add(builder.Regex(r => r.Reason, new MongoDB.Bson.BsonRegularExpression(request.Reason, "i")));
+
+            // IsReviewed filtresi
+            if (request.IsReviewed.HasValue)
+                filters.Add(builder.Eq(r => r.IsReviewed, request.IsReviewed.Value));
+
+            // IsActive filtresi
+            if (request.IsActive.HasValue)
+                filters.Add(builder.Eq(r => r.IsActive, request.IsActive.Value));
+
+            // AdminResponse filtresi (var mı yok mu)
+            if (!string.IsNullOrEmpty(request.AdminResponse))
+            {
+                if (request.AdminResponse.ToLower() == "exists")
+                    filters.Add(builder.Ne(r => r.AdminResponse, null));
+                else if (request.AdminResponse.ToLower() == "notexists")
+                    filters.Add(builder.Eq(r => r.AdminResponse, null));
+                else
+                    filters.Add(builder.Regex(r => r.AdminResponse, new MongoDB.Bson.BsonRegularExpression(request.AdminResponse, "i")));
+            }
+
+            // Tarih aralığı filtresi
+            if (request.StartDate.HasValue)
+                filters.Add(builder.Gte(r => r.InsertTime, request.StartDate.Value));
+
+            if (request.EndDate.HasValue)
+                filters.Add(builder.Lte(r => r.InsertTime, request.EndDate.Value));
+
+            // Eğer hiç filtre yoksa, tümünü getir
+            var combinedFilter = filters.Any() ? builder.And(filters) : builder.Empty;
+
+            // Sayfalama
+            int skip = (request.Page - 1) * request.PageSize;
+
+            // Filtrelenmiş veriler
+            var reports = await _reports.Find(combinedFilter)
+                .SortByDescending(r => r.InsertTime)
+                .Skip(skip)
+                .Limit(request.PageSize)
+                .ToListAsync();
+
+            // Toplam sayı
+            var totalCount = await _reports.CountDocumentsAsync(combinedFilter);
+
+            return new
+            {
+                reports = reports,
+                totalCount = totalCount,
+                page = request.Page,
+                pageSize = request.PageSize,
+                totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
+            };
         }
     }
 }

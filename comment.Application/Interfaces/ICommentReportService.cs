@@ -1,4 +1,5 @@
 using Comment.Domain.Entities;
+using Comment.Domain.DTOs;
 
 namespace Comment.Application.Interfaces
 {
@@ -17,6 +18,7 @@ namespace Comment.Application.Interfaces
         Task<List<CommentReport>> GetReportsByCommentIdAsync(string commentId); // Bir yoruma ait tüm şikayetler
         Task<List<string>> GetReportedCommentIdsByUserAsync(string userId); // Kullanıcının şikayet ettiği yorumları getir
         Task<List<CommentReport>> GetUserReportsWithDetailsAsync(string userId); // Kullanıcının şikayet detaylarını getir
+        Task<object> FilterCommentReportsAsync(FilterCommentReportsRequest request); // Şikayetleri filtrele
         
 
     }

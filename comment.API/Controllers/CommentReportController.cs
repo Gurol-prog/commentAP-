@@ -1,4 +1,5 @@
 using Comment.Application.Interfaces;
+using Comment.Domain.DTOs;
 using Comment.Domain.Entities;
 using Comment.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -253,6 +254,29 @@ namespace Comment.API.Controllers
             {
                 var response = ApiResponse<object>.ErrorResponse(
                     new List<string> { "Kullanıcının şikayet detayları getirilirken bir hata oluştu." },
+                    "İşlem başarısız.",
+                    500
+                );
+                return StatusCode(500, response);
+            }
+        }
+        // Admin: Şikayetleri filtrele
+        [HttpPost("filter")]
+        public async Task<IActionResult> FilterReports([FromBody] FilterCommentReportsRequest request)
+        {
+            try
+            {
+                var result = await _reportService.FilterCommentReportsAsync(request);
+                var response = ApiResponse<object>.SuccessResponse(
+                    result,
+                    "Şikayetler başarıyla filtrelendi."
+                );
+                return Ok(response);
+            }
+            catch (Exception)
+            {
+                var response = ApiResponse<object>.ErrorResponse(
+                    new List<string> { "Şikayetler filtrelenirken bir hata oluştu." },
                     "İşlem başarısız.",
                     500
                 );
