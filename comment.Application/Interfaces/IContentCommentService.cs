@@ -13,11 +13,9 @@ namespace Comment.Application.Interfaces
 
         Task<ContentComment> CreateCommentAsync(ContentComment comment); // Yeni yorum ekle
 
-        Task<bool> UpdateCommentAsync(string id, string newComment); // Yorumu düzenle
+        Task<bool> UpdateCommentAsync(string id, string newComment, string userId); // Yorumu düzenle
 
-        Task<bool> SoftDeleteCommentAsync(string id); // Soft delete (gizle)
-
-        Task<bool> DeleteCommentAsync(string id); // Hard delete (kalıcı)
+        Task<bool> SoftDeleteCommentAsync(string id, string userId);// Soft delete (gizle)
 
         Task<bool> DeleteAllCommentsByContentIdAsync(string contentId); // İçerik silinince
 

@@ -37,5 +37,7 @@ namespace Comment.Domain.Entities
 
         [BsonElement("IsActive")]
         public bool IsActive { get; set; } = true; // Şikayet hâlâ aktif mi? false ise kapatılmıştır
+        [BsonElement("DeactivateTime")]
+        public DateTime? DeactivateTime { get; set; } // Şikayetin kapatıldığı tarih    
     }
 }

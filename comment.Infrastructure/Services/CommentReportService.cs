@@ -51,7 +51,8 @@ namespace Comment.Infrastructure.Services
         public async Task<bool> DeactivateReportAsync(string reportId)
         {
             var update = Builders<CommentReport>.Update
-                 .Set(r => r.IsActive, false);
+                .Set(r => r.IsActive, false)
+                .Set(r => r.DeactivateTime, DateTime.UtcNow);
 
             var result = await _reports.UpdateOneAsync(r => r.Id == reportId, update);
             return result.ModifiedCount > 0;
@@ -67,6 +68,15 @@ namespace Comment.Infrastructure.Services
             var reports = await _reports
                 .Find(x => x.ReporterUserId == userId)
                 .Project(x => x.CommentId)
+                .ToListAsync();
+
+            return reports;
+        }
+        public async Task<List<CommentReport>> GetUserReportsWithDetailsAsync(string userId)
+        {
+            var reports = await _reports
+                .Find(x => x.ReporterUserId == userId)
+                .SortByDescending(x => x.InsertTime)
                 .ToListAsync();
 
             return reports;

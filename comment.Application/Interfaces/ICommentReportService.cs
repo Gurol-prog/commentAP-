@@ -16,6 +16,7 @@ namespace Comment.Application.Interfaces
 
         Task<List<CommentReport>> GetReportsByCommentIdAsync(string commentId); // Bir yoruma ait tüm şikayetler
         Task<List<string>> GetReportedCommentIdsByUserAsync(string userId); // Kullanıcının şikayet ettiği yorumları getir
+        Task<List<CommentReport>> GetUserReportsWithDetailsAsync(string userId); // Kullanıcının şikayet detaylarını getir
         
 
     }

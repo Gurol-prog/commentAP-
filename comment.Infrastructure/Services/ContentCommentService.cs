@@ -71,27 +71,28 @@ namespace Comment.Infrastructure.Services
             return comment;
         }
 
-        public async Task<bool> UpdateCommentAsync(string id, string newComment)
+       public async Task<bool> UpdateCommentAsync(string id, string newComment, string userId)
         {
             var update = Builders<ContentComment>.Update
                 .Set(x => x.Comment, newComment)
                 .Set(x => x.LastUpdateTime, DateTime.UtcNow);
 
-            var result = await _comments.UpdateOneAsync(x => x.Id == id && x.DeleteTime == null, update);
+            // Sadece yorum sahibi güncelleyebilsin
+            var result = await _comments.UpdateOneAsync(
+                x => x.Id == id && x.DeleteTime == null && x.CommenterUserId == userId, 
+                update
+            );
             return result.ModifiedCount > 0;
         }
 
-        public async Task<bool> SoftDeleteCommentAsync(string id)
+       public async Task<bool> SoftDeleteCommentAsync(string id, string userId)
         {
             var update = Builders<ContentComment>.Update.Set(x => x.DeleteTime, DateTime.UtcNow);
-            var result = await _comments.UpdateOneAsync(x => x.Id == id, update);
+            var result = await _comments.UpdateOneAsync(
+                x => x.Id == id && x.CommenterUserId == userId && x.DeleteTime == null, 
+                update
+            );
             return result.ModifiedCount > 0;
-        }
-
-        public async Task<bool> DeleteCommentAsync(string id)
-        {
-            var result = await _comments.DeleteOneAsync(x => x.Id == id);
-            return result.DeletedCount > 0;
         }
 
         public async Task<bool> DeleteAllCommentsByContentIdAsync(string contentId)
@@ -105,11 +106,10 @@ namespace Comment.Infrastructure.Services
             return await _comments.CountDocumentsAsync(x => x.ContentId == contentId && x.DeleteTime == null);
         }
 
-        // ✅ Sadece bu metodu güncelleyin - daha anlamlı mesajlar
-        public async Task<(bool success, string message, int likeCount, int dislikeCount)> ToggleCommentLikeAsync(
+               public async Task<(bool success, string message, int likeCount, int dislikeCount)> ToggleCommentLikeAsync(
              string userId, string commentId, string likeType)
         {
-            // ✅ Enum string'ini normalize et
+            
             var likeTypeString = likeType.ToLowerInvariant();
 
             var existingVote = await _voteService.GetUserCommentVoteAsync(userId, commentId);
