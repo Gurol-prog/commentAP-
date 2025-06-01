@@ -2,18 +2,22 @@ using Comment.Application.Interfaces;
 using Comment.Domain.Entities;
 using Comment.Domain.DTOs;
 using MongoDB.Driver;
+using MongoDB.Bson;
 
 namespace Comment.Infrastructure.Services
 {
     public class ContentCommentService : IContentCommentService
     {
         private readonly IMongoCollection<ContentComment> _comments;
+
         private readonly ICommentVoteService _voteService;
         private readonly ICommentReportService _reportService;
+
 
         public ContentCommentService(IMongoDBService mongoService, ICommentVoteService voteService, ICommentReportService reportService)
         {
             _comments = mongoService.GetCollection<ContentComment>("ContentComments");
+
             _voteService = voteService;
             _reportService = reportService;
         }
@@ -71,7 +75,7 @@ namespace Comment.Infrastructure.Services
             return comment;
         }
 
-       public async Task<bool> UpdateCommentAsync(string id, string newComment, string userId)
+        public async Task<bool> UpdateCommentAsync(string id, string newComment, string userId)
         {
             var update = Builders<ContentComment>.Update
                 .Set(x => x.Comment, newComment)
@@ -79,17 +83,17 @@ namespace Comment.Infrastructure.Services
 
             // Sadece yorum sahibi güncelleyebilsin
             var result = await _comments.UpdateOneAsync(
-                x => x.Id == id && x.DeleteTime == null && x.CommenterUserId == userId, 
+                x => x.Id == id && x.DeleteTime == null && x.CommenterUserId == userId,
                 update
             );
             return result.ModifiedCount > 0;
         }
 
-       public async Task<bool> SoftDeleteCommentAsync(string id, string userId)
+        public async Task<bool> SoftDeleteCommentAsync(string id, string userId)
         {
             var update = Builders<ContentComment>.Update.Set(x => x.DeleteTime, DateTime.UtcNow);
             var result = await _comments.UpdateOneAsync(
-                x => x.Id == id && x.CommenterUserId == userId && x.DeleteTime == null, 
+                x => x.Id == id && x.CommenterUserId == userId && x.DeleteTime == null,
                 update
             );
             return result.ModifiedCount > 0;
@@ -106,10 +110,10 @@ namespace Comment.Infrastructure.Services
             return await _comments.CountDocumentsAsync(x => x.ContentId == contentId && x.DeleteTime == null);
         }
 
-               public async Task<(bool success, string message, int likeCount, int dislikeCount)> ToggleCommentLikeAsync(
-             string userId, string commentId, string likeType)
+        public async Task<(bool success, string message, int likeCount, int dislikeCount)> ToggleCommentLikeAsync(
+      string userId, string commentId, string likeType)
         {
-            
+
             var likeTypeString = likeType.ToLowerInvariant();
 
             var existingVote = await _voteService.GetUserCommentVoteAsync(userId, commentId);
@@ -149,13 +153,13 @@ namespace Comment.Infrastructure.Services
             return (false, "Vote güncellenirken hata oluştu", 0, 0);
         }
 
-        
+
         public async Task<string?> GetUserCommentLikeStatusAsync(string userId, string commentId)
         {
             var vote = await _voteService.GetUserCommentVoteAsync(userId, commentId);
             return vote?.VoteType;
         }
-        
+
         public async Task<List<ContentComment>> FilterCommentsAsync(CommentFilterRequest filter)
         {
             var builder = Builders<ContentComment>.Filter;
@@ -212,6 +216,9 @@ namespace Comment.Infrastructure.Services
 
             return results;
         }
+        
+        
+        
 
     }
 }

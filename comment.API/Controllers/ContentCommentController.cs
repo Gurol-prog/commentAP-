@@ -43,6 +43,8 @@ namespace Comment.API.Controllers
             }
         }
 
+        
+
         //Bir ana yorumun tüm cevaplarını getir
         [HttpGet("comment/{parentCommentId}/replies")]
         public async Task<ActionResult<ApiResponse<IEnumerable<ContentComment>>>> GetRepliesByParentId(string parentCommentId, [FromQuery] string userId)

@@ -7,5 +7,6 @@ namespace Comment.API.Config
         public string ContentCommentsCollectionName { get; set; } = null!;
         public string CommentVotesCollectionName { get; set; } = null!;
         public string CommentReportsCollectionName { get; set; } = null!;
+        public string ParentCollectionName { get; set; } = null!;
     }
 }

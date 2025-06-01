@@ -37,5 +37,7 @@ namespace Comment.Application.Interfaces
         Task<List<ContentComment>> FilterCommentsAsync(CommentFilterRequest filterRequest);
 
         
+
+        
     }
 }
