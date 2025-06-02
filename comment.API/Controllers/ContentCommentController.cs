@@ -4,6 +4,7 @@ using Comment.Domain.DTOs;
 using Comment.Domain.Enums;
 using Comment.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 
 namespace Comment.API.Controllers
 {
@@ -43,7 +44,30 @@ namespace Comment.API.Controllers
             }
         }
 
-        
+        [HttpGet("content/{contentId}/comments-with-users")]
+        public async Task<IActionResult> GetCommentsWithUsers(string contentId, [FromQuery] string userId)
+        {
+            try
+            {
+                var comments = await _commentService.GetCommentsWithUser(contentId, userId);
+
+                var successResponse = ApiResponse<IEnumerable<object>>.SuccessResponse(
+                    comments,
+                    "Kullanıcı bilgileri ile yorumlar başarıyla getirildi"
+                );
+                return Ok(successResponse);
+            }
+            catch (Exception ex)
+            {
+                var errorResponse = ApiResponse<IEnumerable<object>>.ErrorResponse(
+                    new List<string> { ex.Message },
+                    "Yorumlar getirilirken hata oluştu",
+                    500
+                );
+                return StatusCode(500, errorResponse);
+            }
+        }
+
 
         //Bir ana yorumun tüm cevaplarını getir
         [HttpGet("comment/{parentCommentId}/replies")]

@@ -216,9 +216,123 @@ namespace Comment.Infrastructure.Services
 
             return results;
         }
-        
-        
-        
+
+        public async Task<List<object>> GetCommentsWithUser(string contentId, string userId)
+        {
+            var collection = _comments.Database.GetCollection<BsonDocument>("ContentComments");
+
+            var pipeline = new[]
+            {
+       BsonDocument.Parse($@"{{ $match: {{ ContentId: ObjectId('{contentId}') }} }}"),
+
+       BsonDocument.Parse(@"{
+           $lookup: {
+               from: 'Parents',
+               localField: 'CommenterId',
+               foreignField: '_id',
+               as: 'userInfo'
+           }
+       }"),
+
+       BsonDocument.Parse(@"{
+           $unwind: {
+               path: '$userInfo',
+               preserveNullAndEmptyArrays: true
+           }
+       }"),
+
+       BsonDocument.Parse(@"{
+           $project: {
+               id: { $toString: '$_id' },
+               contentId: { $toString: '$ContentId' },
+               commenterId: { $toString: '$CommenterId' },
+               fullName: { 
+                   $cond: {
+                       if: { $and: [{ $ne: ['$userInfo.name', null] }, { $ne: ['$userInfo.surName', null] }] },
+                       then: { $concat: ['$userInfo.name', ' ', '$userInfo.surName'] },
+                       else: 'Bilinmeyen Kullanıcı'
+                   }
+               },
+               comment: '$Comment',
+               parentCommentId: { 
+                   $cond: {
+                       if: { $ne: ['$ParentCommentId', null] },
+                       then: { $toString: '$ParentCommentId' },
+                       else: null
+                   }
+               },
+               likeCount: '$LikeCount',
+               dislikeCount: '$DislikeCount',
+               insertTime: '$InsertTime',
+               lastUpdateTime: '$LastUpdateTime',
+               deleteTime: '$DeleteTime'
+           }
+       }")
+   };
+
+            var bsonResults = await collection.Aggregate<BsonDocument>(pipeline).ToListAsync();
+
+            var results = new List<object>();
+            foreach (var doc in bsonResults)
+            {
+                results.Add(new
+                {
+                    id = doc.GetValue("id", "").ToString(),
+                    contentId = doc.GetValue("contentId", "").ToString(),
+                    user = new
+                    {
+                        commenterId = doc.GetValue("commenterId", "").ToString(),
+                        fullName = MaskName(doc.GetValue("fullName", "Bilinmeyen").ToString())
+                    },
+                    comment = doc.GetValue("comment", "").ToString(),
+                    parentCommentId = doc.Contains("parentCommentId") && !doc["parentCommentId"].IsBsonNull
+                        ? doc.GetValue("parentCommentId", "").ToString()
+                        : null,
+                    likeCount = doc.GetValue("likeCount", 0).ToInt32(),
+                    dislikeCount = doc.GetValue("dislikeCount", 0).ToInt32(),
+                    insertTime = doc.GetValue("insertTime", DateTime.UtcNow).ToUniversalTime(),
+                    lastUpdateTime = doc.Contains("lastUpdateTime") && !doc["lastUpdateTime"].IsBsonNull
+                        ? doc.GetValue("lastUpdateTime", DateTime.UtcNow).ToUniversalTime()
+                        : (DateTime?)null,
+                    deleteTime = doc.Contains("deleteTime") && !doc["deleteTime"].IsBsonNull
+                        ? doc.GetValue("deleteTime", DateTime.UtcNow).ToUniversalTime()
+                        : (DateTime?)null
+                });
+            }
+
+            return results;
+        }
+
+        private string MaskName(string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName))
+                return "Bilinmeyen";
+
+            var parts = fullName.Split(' ');
+            if (parts.Length == 0)
+                return "Bilinmeyen";
+
+            var maskedParts = new List<string>();
+
+            foreach (var part in parts)
+            {
+                if (string.IsNullOrWhiteSpace(part))
+                    continue;
+
+                if (part.Length == 1)
+                {
+                    maskedParts.Add(part);
+                }
+                else
+                {
+                    maskedParts.Add(part[0] + new string('*', part.Length - 1));
+                }
+            }
+
+            return maskedParts.Count > 0 ? string.Join(" ", maskedParts) : "Bilinmeyen";
+        }
+
+
 
     }
 }

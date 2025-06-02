@@ -1,5 +1,6 @@
 using Comment.Domain.Entities;
 using Comment.Domain.DTOs;
+using MongoDB.Bson;
 
 namespace Comment.Application.Interfaces
 {
@@ -35,6 +36,7 @@ namespace Comment.Application.Interfaces
         );
 
         Task<List<ContentComment>> FilterCommentsAsync(CommentFilterRequest filterRequest);
+        Task<List<object>> GetCommentsWithUser(string contentId, string userId);
 
         
 
