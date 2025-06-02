@@ -101,9 +101,14 @@ namespace Comment.Infrastructure.Services
 
         public async Task<bool> DeleteAllCommentsByContentIdAsync(string contentId)
         {
-            var result = await _comments.DeleteManyAsync(x => x.ContentId == contentId);
-            return result.DeletedCount > 0;
+            var update = Builders<ContentComment>.Update.Set(x => x.DeleteTime, DateTime.UtcNow);
+            var result = await _comments.UpdateManyAsync(
+                x => x.ContentId == contentId && x.DeleteTime == null,
+                update
+            );
+            return result.ModifiedCount > 0;
         }
+
 
         public async Task<long> GetCommentCountByContentIdAsync(string contentId)
         {
@@ -219,11 +224,34 @@ namespace Comment.Infrastructure.Services
 
         public async Task<List<object>> GetCommentsWithUser(string contentId, string userId)
         {
+            // Report filtreleri - aynı mantık
+            var reportedIds = await _reportService.GetReportedCommentIdsByUserAsync(userId);
+            var repliesToReported = await _comments
+                .Find(x => reportedIds.Contains(x.ParentCommentId))
+                .Project(x => x.Id)
+                .ToListAsync();
+            var totalHiddenIds = reportedIds.Concat(repliesToReported).ToList();
+
             var collection = _comments.Database.GetCollection<BsonDocument>("ContentComments");
+
+            // Match filtresini genişlet
+            var matchFilter = new BsonDocument
+   {
+       { "ContentId", new ObjectId(contentId) },
+       { "ParentCommentId", BsonNull.Value },  // Sadece ana yorumlar
+       { "DeleteTime", BsonNull.Value }        // Silinmemişler
+   };
+
+            // Gizlenecek yorumları filtrele
+            if (totalHiddenIds.Any())
+            {
+                var hiddenObjectIds = totalHiddenIds.Select(id => new ObjectId(id)).ToArray();
+                matchFilter.Add("_id", new BsonDocument("$nin", new BsonArray(hiddenObjectIds)));
+            }
 
             var pipeline = new[]
             {
-       BsonDocument.Parse($@"{{ $match: {{ ContentId: ObjectId('{contentId}') }} }}"),
+       new BsonDocument("$match", matchFilter),
 
        BsonDocument.Parse(@"{
            $lookup: {
@@ -267,7 +295,10 @@ namespace Comment.Infrastructure.Services
                lastUpdateTime: '$LastUpdateTime',
                deleteTime: '$DeleteTime'
            }
-       }")
+       }"),
+
+       // Sıralama ekle
+       BsonDocument.Parse(@"{ $sort: { InsertTime: 1 } }")
    };
 
             var bsonResults = await collection.Aggregate<BsonDocument>(pipeline).ToListAsync();
@@ -302,6 +333,248 @@ namespace Comment.Infrastructure.Services
 
             return results;
         }
+
+        public async Task<List<object>> GetRepliesWithUser(string parentCommentId, string userId)
+        {
+            // Report filtreleri - aynı mantık
+            var reportedIds = await _reportService.GetReportedCommentIdsByUserAsync(userId);
+
+            // Bu parent şikayet edildiyse, alt yorumları göstermeye gerek yok
+            if (reportedIds.Contains(parentCommentId))
+                return new List<object>();
+
+            var collection = _comments.Database.GetCollection<BsonDocument>("ContentComments");
+
+            // Match filtresini alt yorumlar için ayarla
+            var matchFilter = new BsonDocument
+    {
+        { "ParentCommentId", new ObjectId(parentCommentId) },  // Bu parent'ın altındakiler
+        { "DeleteTime", BsonNull.Value }                       // Silinmemişler
+    };
+
+            // Şikayet edilen yorumları filtrele
+            if (reportedIds.Any())
+            {
+                var reportedObjectIds = reportedIds.Select(id => new ObjectId(id)).ToArray();
+                matchFilter.Add("_id", new BsonDocument("$nin", new BsonArray(reportedObjectIds)));
+            }
+
+            var pipeline = new[]
+            {
+        new BsonDocument("$match", matchFilter),
+
+        BsonDocument.Parse(@"{
+            $lookup: {
+                from: 'Parents',
+                localField: 'CommenterId',
+                foreignField: '_id',
+                as: 'userInfo'
+            }
+        }"),
+
+        BsonDocument.Parse(@"{
+            $unwind: {
+                path: '$userInfo',
+                preserveNullAndEmptyArrays: true
+            }
+        }"),
+
+        BsonDocument.Parse(@"{
+            $project: {
+                id: { $toString: '$_id' },
+                contentId: { $toString: '$ContentId' },
+                commenterId: { $toString: '$CommenterId' },
+                fullName: { 
+                    $cond: {
+                        if: { $and: [{ $ne: ['$userInfo.name', null] }, { $ne: ['$userInfo.surName', null] }] },
+                        then: { $concat: ['$userInfo.name', ' ', '$userInfo.surName'] },
+                        else: 'Bilinmeyen Kullanıcı'
+                    }
+                },
+                comment: '$Comment',
+                parentCommentId: { $toString: '$ParentCommentId' },
+                likeCount: '$LikeCount',
+                dislikeCount: '$DislikeCount',
+                insertTime: '$InsertTime',
+                lastUpdateTime: '$LastUpdateTime',
+                deleteTime: '$DeleteTime'
+            }
+        }"),
+
+        // Sıralama ekle
+        BsonDocument.Parse(@"{ $sort: { InsertTime: 1 } }")
+    };
+
+            var bsonResults = await collection.Aggregate<BsonDocument>(pipeline).ToListAsync();
+
+            var results = new List<object>();
+            foreach (var doc in bsonResults)
+            {
+                results.Add(new
+                {
+                    id = doc.GetValue("id", "").ToString(),
+                    contentId = doc.GetValue("contentId", "").ToString(),
+                    user = new
+                    {
+                        commenterId = doc.GetValue("commenterId", "").ToString(),
+                        fullName = MaskName(doc.GetValue("fullName", "Bilinmeyen").ToString())
+                    },
+                    comment = doc.GetValue("comment", "").ToString(),
+                    parentCommentId = doc.GetValue("parentCommentId", "").ToString(),
+                    likeCount = doc.GetValue("likeCount", 0).ToInt32(),
+                    dislikeCount = doc.GetValue("dislikeCount", 0).ToInt32(),
+                    insertTime = doc.GetValue("insertTime", DateTime.UtcNow).ToUniversalTime(),
+                    lastUpdateTime = doc.Contains("lastUpdateTime") && !doc["lastUpdateTime"].IsBsonNull
+                        ? doc.GetValue("lastUpdateTime", DateTime.UtcNow).ToUniversalTime()
+                        : (DateTime?)null,
+                    deleteTime = doc.Contains("deleteTime") && !doc["deleteTime"].IsBsonNull
+                        ? doc.GetValue("deleteTime", DateTime.UtcNow).ToUniversalTime()
+                        : (DateTime?)null
+                });
+            }
+
+            return results;
+        }
+
+        public async Task<List<object>> FilterCommentsWithUser(CommentFilterRequest filter)
+        {
+            var collection = _comments.Database.GetCollection<BsonDocument>("ContentComments");
+
+            // Match filtresi oluştur
+            var matchFilter = new BsonDocument();
+
+            // ContentId zorunlu
+            matchFilter.Add("ContentId", new ObjectId(filter.ContentId));
+
+            // ParentCommentId filtresi
+            if (filter.ParentCommentId == null)
+                matchFilter.Add("ParentCommentId", BsonNull.Value);
+            else
+                matchFilter.Add("ParentCommentId", new ObjectId(filter.ParentCommentId));
+
+            // Silinmiş yorumlar filtresi
+            if (filter.IsDeleted.HasValue)
+            {
+                if (filter.IsDeleted.Value)
+                    matchFilter.Add("DeleteTime", new BsonDocument("$ne", BsonNull.Value));
+                else
+                    matchFilter.Add("DeleteTime", BsonNull.Value);
+            }
+            else
+            {
+                matchFilter.Add("DeleteTime", BsonNull.Value);
+            }
+
+            // Sadece kendi yorumları
+            if (filter.OnlyMine == true && !string.IsNullOrEmpty(filter.UserId))
+                matchFilter.Add("CommenterId", new ObjectId(filter.UserId));
+
+            // Arama filtresi
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+                matchFilter.Add("Comment", new BsonDocument("$regex", new BsonDocument { { "$regex", filter.Search }, { "$options", "i" } }));
+
+            // Report filtreleri
+            if (!string.IsNullOrEmpty(filter.UserId))
+            {
+                var reportedIds = await _reportService.GetReportedCommentIdsByUserAsync(filter.UserId);
+                if (reportedIds.Any())
+                {
+                    var reportedObjectIds = reportedIds.Select(id => new ObjectId(id)).ToArray();
+                    matchFilter.Add("_id", new BsonDocument("$nin", new BsonArray(reportedObjectIds)));
+                }
+            }
+
+            // Pipeline oluştur
+            var pipeline = new List<BsonDocument>
+    {
+        new BsonDocument("$match", matchFilter),
+
+        BsonDocument.Parse(@"{
+            $lookup: {
+                from: 'Parents',
+                localField: 'CommenterId',
+                foreignField: '_id',
+                as: 'userInfo'
+            }
+        }"),
+
+        BsonDocument.Parse(@"{
+            $unwind: {
+                path: '$userInfo',
+                preserveNullAndEmptyArrays: true
+            }
+        }"),
+
+        BsonDocument.Parse(@"{
+            $project: {
+                id: { $toString: '$_id' },
+                contentId: { $toString: '$ContentId' },
+                commenterId: { $toString: '$CommenterId' },
+                fullName: { 
+                    $cond: {
+                        if: { $and: [{ $ne: ['$userInfo.name', null] }, { $ne: ['$userInfo.surName', null] }] },
+                        then: { $concat: ['$userInfo.name', ' ', '$userInfo.surName'] },
+                        else: 'Bilinmeyen Kullanıcı'
+                    }
+                },
+                comment: '$Comment',
+                parentCommentId: { 
+                    $cond: {
+                        if: { $ne: ['$ParentCommentId', null] },
+                        then: { $toString: '$ParentCommentId' },
+                        else: null
+                    }
+                },
+                likeCount: '$LikeCount',
+                dislikeCount: '$DislikeCount',
+                insertTime: '$InsertTime',
+                lastUpdateTime: '$LastUpdateTime',
+                deleteTime: '$DeleteTime'
+            }
+        }"),
+
+        // Sıralama
+        BsonDocument.Parse(@"{ $sort: { InsertTime: 1 } }"),
+
+        // Sayfalama
+        BsonDocument.Parse($@"{{ $skip: {(filter.Page - 1) * filter.PageSize} }}"),
+        BsonDocument.Parse($@"{{ $limit: {filter.PageSize} }}")
+    };
+
+            var bsonResults = await collection.Aggregate<BsonDocument>(pipeline).ToListAsync();
+
+            var results = new List<object>();
+            foreach (var doc in bsonResults)
+            {
+                results.Add(new
+                {
+                    id = doc.GetValue("id", "").ToString(),
+                    contentId = doc.GetValue("contentId", "").ToString(),
+                    user = new
+                    {
+                        commenterId = doc.GetValue("commenterId", "").ToString(),
+                        fullName = MaskName(doc.GetValue("fullName", "Bilinmeyen").ToString())
+                    },
+                    comment = doc.GetValue("comment", "").ToString(),
+                    parentCommentId = doc.Contains("parentCommentId") && !doc["parentCommentId"].IsBsonNull
+                        ? doc.GetValue("parentCommentId", "").ToString()
+                        : null,
+                    likeCount = doc.GetValue("likeCount", 0).ToInt32(),
+                    dislikeCount = doc.GetValue("dislikeCount", 0).ToInt32(),
+                    insertTime = doc.GetValue("insertTime", DateTime.UtcNow).ToUniversalTime(),
+                    lastUpdateTime = doc.Contains("lastUpdateTime") && !doc["lastUpdateTime"].IsBsonNull
+                        ? doc.GetValue("lastUpdateTime", DateTime.UtcNow).ToUniversalTime()
+                        : (DateTime?)null,
+                    deleteTime = doc.Contains("deleteTime") && !doc["deleteTime"].IsBsonNull
+                        ? doc.GetValue("deleteTime", DateTime.UtcNow).ToUniversalTime()
+                        : (DateTime?)null
+                });
+            }
+
+            return results;
+        }
+
+
 
         private string MaskName(string fullName)
         {

@@ -93,6 +93,31 @@ namespace Comment.API.Controllers
                 return StatusCode(500, errorResponse);
             }
         }
+
+        [HttpGet("comment/{parentCommentId}/replies-with-users")]
+        public async Task<IActionResult> GetRepliesWithUsers(string parentCommentId, [FromQuery] string userId)
+        {
+            try
+            {
+                var replies = await _commentService.GetRepliesWithUser(parentCommentId, userId);
+
+                var successResponse = ApiResponse<IEnumerable<object>>.SuccessResponse(
+                    replies,
+                    "Alt yorumlar kullanıcı bilgileri ile başarıyla getirildi"
+                );
+                return Ok(successResponse);
+            }
+            catch (Exception ex)
+            {
+                var errorResponse = ApiResponse<IEnumerable<object>>.ErrorResponse(
+                    new List<string> { ex.Message },
+                    "Alt yorumlar getirilirken hata oluştu",
+                    500
+                );
+                return StatusCode(500, errorResponse);
+            }
+        }
+
         //Yorum oluşturma
         [HttpPost]
         public async Task<ActionResult<ApiResponse<ContentComment>>> Create([FromBody] CreateCommentRequest request)
@@ -149,7 +174,7 @@ namespace Comment.API.Controllers
         }
         //yorum güncelleme
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<string>>> Update(string id,[FromQuery] string userId, [FromBody] UpdateCommentRequest request)
+        public async Task<ActionResult<ApiResponse<string>>> Update(string id, [FromQuery] string userId, [FromBody] UpdateCommentRequest request)
         {
             try
             {
@@ -407,7 +432,7 @@ namespace Comment.API.Controllers
                 return StatusCode(500, errorResponse);
             }
         }
-        
+
         [HttpPost("filter")]
         public async Task<ActionResult<ApiResponse<IEnumerable<ContentComment>>>> Filter([FromBody] CommentFilterRequest filter)
         {
@@ -431,6 +456,31 @@ namespace Comment.API.Controllers
                 return StatusCode(500, errorResponse);
             }
         }
+
+        [HttpPost("filter-with-users")]
+        public async Task<IActionResult> FilterCommentsWithUsers([FromBody] CommentFilterRequest filter)
+        {
+            try
+            {
+                var comments = await _commentService.FilterCommentsWithUser(filter);
+
+                var successResponse = ApiResponse<IEnumerable<object>>.SuccessResponse(
+                    comments,
+                    "Filtrelenmiş yorumlar kullanıcı bilgileri ile başarıyla getirildi"
+                );
+                return Ok(successResponse);
+            }
+            catch (Exception ex)
+            {
+                var errorResponse = ApiResponse<IEnumerable<object>>.ErrorResponse(
+                    new List<string> { ex.Message },
+                    "Filtreleme sırasında hata oluştu",
+                    500
+                );
+                return StatusCode(500, errorResponse);
+            }
+        }
+
 
     }
 

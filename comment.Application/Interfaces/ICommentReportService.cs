@@ -19,7 +19,17 @@ namespace Comment.Application.Interfaces
         Task<List<string>> GetReportedCommentIdsByUserAsync(string userId); // Kullanıcının şikayet ettiği yorumları getir
         Task<List<CommentReport>> GetUserReportsWithDetailsAsync(string userId); // Kullanıcının şikayet detaylarını getir
         Task<object> FilterCommentReportsAsync(FilterCommentReportsRequest request); // Şikayetleri filtrele
-        
+
+        Task<List<object>> GetReportsWithDetails(); // detaylı tüm şikayetler
+
+        Task<List<object>> GetUnreviewedReportsWithDetails(); // Admin → bekleyen şikayetleri görsün detaylı
+        Task<object?> GetReportByIdWithDetails(string reportId); // Tekil şikayeti getir (inceleme için)- detaylı
+
+        Task<List<object>> GetReportsByCommentIdWithDetails(string commentId); // Bir yoruma ait tüm şikayetler - detaylı
+
+        Task<object> FilterCommentReportsWithDetailsAsync(FilterCommentReportsRequest request); // Şikayetleri filtrele - detaylı
+
+        Task<List<object>> GetCommentsReportedAgainstUser(string userId);// Bir kullanıcının şikayet edilen yorumlarını getir
 
     }
 }

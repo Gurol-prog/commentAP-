@@ -12,5 +12,6 @@ namespace Comment.Domain.DTOs
         public string? AdminResponse { get; set; }      // Admin cevabı var mı?
         public int Page { get; set; } = 1;              // Sayfa numarası
         public int PageSize { get; set; } = 10;         // Sayfa boyutu
+        public string? CommenterUserId { get; set; } // Yorumu yazan kullanıcı ID'si
     }
 }

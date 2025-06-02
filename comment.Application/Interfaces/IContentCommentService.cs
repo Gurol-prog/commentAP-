@@ -38,6 +38,10 @@ namespace Comment.Application.Interfaces
         Task<List<ContentComment>> FilterCommentsAsync(CommentFilterRequest filterRequest);
         Task<List<object>> GetCommentsWithUser(string contentId, string userId);
 
+        Task<List<object>> GetRepliesWithUser(string parentCommentId, string userId);
+
+        Task<List<object>> FilterCommentsWithUser(CommentFilterRequest filter);
+
         
 
         
