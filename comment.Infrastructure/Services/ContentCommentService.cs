@@ -71,6 +71,25 @@ namespace Comment.Infrastructure.Services
 
         public async Task<ContentComment> CreateCommentAsync(ContentComment comment)
         {
+            // Eğer bu bir reply ise (ParentCommentId varsa)
+            if (!string.IsNullOrEmpty(comment.ParentCommentId))
+            {
+                // Parent comment'in ReplyCount'unu +1 artır
+                var parentUpdate = Builders<ContentComment>.Update.Inc(x => x.ReplyCount, 1);
+                await _comments.UpdateOneAsync(
+                    x => x.Id == comment.ParentCommentId && x.DeleteTime == null,
+                    parentUpdate
+                );
+                
+                // Reply comment'in ReplyCount'u null kalır (default)
+                comment.ReplyCount = null;
+            }
+            else
+            {
+                // Ana yorum ise ReplyCount = 0
+                comment.ReplyCount = 0;
+            }
+
             await _comments.InsertOneAsync(comment);
             return comment;
         }
@@ -91,13 +110,45 @@ namespace Comment.Infrastructure.Services
 
         public async Task<bool> SoftDeleteCommentAsync(string id, string userId)
         {
+            // Önce silinecek comment'i bulalım (ReplyCount mantığı için)
+            var commentToDelete = await _comments.Find(x => x.Id == id && x.CommenterUserId == userId && x.DeleteTime == null).FirstOrDefaultAsync();
+
+            if (commentToDelete == null)
+                return false;
+
+            // Comment'i soft delete yap
             var update = Builders<ContentComment>.Update.Set(x => x.DeleteTime, DateTime.UtcNow);
             var result = await _comments.UpdateOneAsync(
                 x => x.Id == id && x.CommenterUserId == userId && x.DeleteTime == null,
                 update
             );
+
+            if (result.ModifiedCount > 0)
+            {
+                // Eğer silinen comment bir reply ise, parent'ın ReplyCount'unu azalt
+                if (!string.IsNullOrEmpty(commentToDelete.ParentCommentId))
+                {
+                    var parentUpdate = Builders<ContentComment>.Update.Inc(x => x.ReplyCount, -1);
+                    await _comments.UpdateOneAsync(
+                        x => x.Id == commentToDelete.ParentCommentId && x.DeleteTime == null,
+                        parentUpdate
+                    );
+                }
+                // Eğer silinen comment ana yorum ise, altındaki tüm cevapları da sil
+                else if (commentToDelete.ParentCommentId == null)
+                {
+                    var repliesUpdate = Builders<ContentComment>.Update.Set(x => x.DeleteTime, DateTime.UtcNow);
+                    await _comments.UpdateManyAsync(
+                        x => x.ParentCommentId == id && x.DeleteTime == null,
+                        repliesUpdate
+                    );
+                }
+            }
+
             return result.ModifiedCount > 0;
         }
+
+
 
         public async Task<bool> DeleteAllCommentsByContentIdAsync(string contentId)
         {
@@ -276,8 +327,8 @@ namespace Comment.Infrastructure.Services
                commenterId: { $toString: '$CommenterId' },
                fullName: { 
                    $cond: {
-                       if: { $and: [{ $ne: ['$userInfo.name', null] }, { $ne: ['$userInfo.surName', null] }] },
-                       then: { $concat: ['$userInfo.name', ' ', '$userInfo.surName'] },
+                       if: { $and: [{ $ne: ['$userInfo.Name', null] }, { $ne: ['$userInfo.Surname', null] }] },
+                       then: { $concat: ['$userInfo.Name', ' ', '$userInfo.Surname'] },
                        else: 'Bilinmeyen Kullanıcı'
                    }
                },
@@ -293,7 +344,8 @@ namespace Comment.Infrastructure.Services
                dislikeCount: '$DislikeCount',
                insertTime: '$InsertTime',
                lastUpdateTime: '$LastUpdateTime',
-               deleteTime: '$DeleteTime'
+               deleteTime: '$DeleteTime',
+               replyCount: '$ReplyCount'
            }
        }"),
 
@@ -327,7 +379,11 @@ namespace Comment.Infrastructure.Services
                         : (DateTime?)null,
                     deleteTime = doc.Contains("deleteTime") && !doc["deleteTime"].IsBsonNull
                         ? doc.GetValue("deleteTime", DateTime.UtcNow).ToUniversalTime()
-                        : (DateTime?)null
+                        : (DateTime?)null,
+                    replyCount = doc.Contains("replyCount") && !doc["replyCount"].IsBsonNull
+                        ? doc.GetValue("replyCount", 0).ToInt32()
+                        : (int?)null
+    
                 });
             }
 
@@ -386,8 +442,8 @@ namespace Comment.Infrastructure.Services
                 commenterId: { $toString: '$CommenterId' },
                 fullName: { 
                     $cond: {
-                        if: { $and: [{ $ne: ['$userInfo.name', null] }, { $ne: ['$userInfo.surName', null] }] },
-                        then: { $concat: ['$userInfo.name', ' ', '$userInfo.surName'] },
+                        if: { $and: [{ $ne: ['$userInfo.Name', null] }, { $ne: ['$userInfo.Surname', null] }] },
+                        then: { $concat: ['$userInfo.Name', ' ', '$userInfo.Surname'] },
                         else: 'Bilinmeyen Kullanıcı'
                     }
                 },
@@ -397,7 +453,8 @@ namespace Comment.Infrastructure.Services
                 dislikeCount: '$DislikeCount',
                 insertTime: '$InsertTime',
                 lastUpdateTime: '$LastUpdateTime',
-                deleteTime: '$DeleteTime'
+                deleteTime: '$DeleteTime',
+                replyCount: '$ReplyCount'
             }
         }"),
 
@@ -429,7 +486,10 @@ namespace Comment.Infrastructure.Services
                         : (DateTime?)null,
                     deleteTime = doc.Contains("deleteTime") && !doc["deleteTime"].IsBsonNull
                         ? doc.GetValue("deleteTime", DateTime.UtcNow).ToUniversalTime()
-                        : (DateTime?)null
+                        : (DateTime?)null,
+                    replyCount = doc.Contains("replyCount") && !doc["replyCount"].IsBsonNull
+                        ? doc.GetValue("replyCount", 0).ToInt32()
+                        : (int?)null
                 });
             }
 
@@ -512,8 +572,8 @@ namespace Comment.Infrastructure.Services
                 commenterId: { $toString: '$CommenterId' },
                 fullName: { 
                     $cond: {
-                        if: { $and: [{ $ne: ['$userInfo.name', null] }, { $ne: ['$userInfo.surName', null] }] },
-                        then: { $concat: ['$userInfo.name', ' ', '$userInfo.surName'] },
+                        if: { $and: [{ $ne: ['$userInfo.Name', null] }, { $ne: ['$userInfo.Surname', null] }] },
+                        then: { $concat: ['$userInfo.Name', ' ', '$userInfo.Surname'] },
                         else: 'Bilinmeyen Kullanıcı'
                     }
                 },
@@ -529,7 +589,8 @@ namespace Comment.Infrastructure.Services
                 dislikeCount: '$DislikeCount',
                 insertTime: '$InsertTime',
                 lastUpdateTime: '$LastUpdateTime',
-                deleteTime: '$DeleteTime'
+                deleteTime: '$DeleteTime',
+                replyCount: '$ReplyCount'
             }
         }"),
 
@@ -567,7 +628,11 @@ namespace Comment.Infrastructure.Services
                         : (DateTime?)null,
                     deleteTime = doc.Contains("deleteTime") && !doc["deleteTime"].IsBsonNull
                         ? doc.GetValue("deleteTime", DateTime.UtcNow).ToUniversalTime()
-                        : (DateTime?)null
+                        : (DateTime?)null,
+                    replyCount = doc.Contains("replyCount") && !doc["replyCount"].IsBsonNull
+                        ? doc.GetValue("replyCount", 0).ToInt32()
+                        : (int?)null
+    
                 });
             }
 

@@ -38,5 +38,8 @@ namespace Comment.Domain.Entities
 
         [BsonElement("DeleteTime")]
         public DateTime? DeleteTime { get; set; }
+        [BsonElement("ReplyCount")]
+        public int? ReplyCount { get; set; }
+
     }
 }

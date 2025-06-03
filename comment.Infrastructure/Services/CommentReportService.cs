@@ -236,8 +236,8 @@ namespace Comment.Infrastructure.Services
                        userId: { $toString: '$commenterInfo._id' },
                        fullName: { 
                            $cond: {
-                               if: { $and: [{ $ne: ['$commenterInfo.name', null] }, { $ne: ['$commenterInfo.surName', null] }] },
-                               then: { $concat: ['$commenterInfo.name', ' ', '$commenterInfo.surName'] },
+                               if: { $and: [{ $ne: ['$commenterInfo.Name', null] }, { $ne: ['$commenterInfo.Surname', null] }] },
+                               then: { $concat: ['$commenterInfo.Name', ' ', '$commenterInfo.Surname'] },
                                else: 'Bilinmeyen Kullanıcı'
                            }
                        }
@@ -247,8 +247,8 @@ namespace Comment.Infrastructure.Services
                    userId: { $toString: '$reporterInfo._id' },
                    fullName: { 
                        $cond: {
-                           if: { $and: [{ $ne: ['$reporterInfo.name', null] }, { $ne: ['$reporterInfo.surName', null] }] },
-                           then: { $concat: ['$reporterInfo.name', ' ', '$reporterInfo.surName'] },
+                           if: { $and: [{ $ne: ['$reporterInfo.Name', null] }, { $ne: ['$reporterInfo.Surname', null] }] },
+                           then: { $concat: ['$reporterInfo.Name', ' ', '$reporterInfo.Surname'] },
                            else: 'Bilinmeyen Kullanıcı'
                        }
                    }
@@ -404,8 +404,8 @@ namespace Comment.Infrastructure.Services
                         userId: { $toString: '$commenterInfo._id' },
                         fullName: { 
                             $cond: {
-                                if: { $and: [{ $ne: ['$commenterInfo.name', null] }, { $ne: ['$commenterInfo.surName', null] }] },
-                                then: { $concat: ['$commenterInfo.name', ' ', '$commenterInfo.surName'] },
+                                if: { $and: [{ $ne: ['$commenterInfo.Name', null] }, { $ne: ['$commenterInfo.Surname', null] }] },
+                                then: { $concat: ['$commenterInfo.Name', ' ', '$commenterInfo.Surname'] },
                                 else: 'Bilinmeyen Kullanıcı'
                             }
                         }
@@ -415,8 +415,8 @@ namespace Comment.Infrastructure.Services
                     userId: { $toString: '$reporterInfo._id' },
                     fullName: { 
                         $cond: {
-                            if: { $and: [{ $ne: ['$reporterInfo.name', null] }, { $ne: ['$reporterInfo.surName', null] }] },
-                            then: { $concat: ['$reporterInfo.name', ' ', '$reporterInfo.surName'] },
+                            if: { $and: [{ $ne: ['$reporterInfo.Name', null] }, { $ne: ['$reporterInfo.Surname', null] }] },
+                            then: { $concat: ['$reporterInfo.Name', ' ', '$reporterInfo.Surname'] },
                             else: 'Bilinmeyen Kullanıcı'
                         }
                     }
@@ -570,8 +570,8 @@ namespace Comment.Infrastructure.Services
                         userId: { $toString: '$commenterInfo._id' },
                         fullName: { 
                             $cond: {
-                                if: { $and: [{ $ne: ['$commenterInfo.name', null] }, { $ne: ['$commenterInfo.surName', null] }] },
-                                then: { $concat: ['$commenterInfo.name', ' ', '$commenterInfo.surName'] },
+                                if: { $and: [{ $ne: ['$commenterInfo.Name', null] }, { $ne: ['$commenterInfo.Surname', null] }] },
+                                then: { $concat: ['$commenterInfo.Name', ' ', '$commenterInfo.Surname'] },
                                 else: 'Bilinmeyen Kullanıcı'
                             }
                         }
@@ -581,8 +581,8 @@ namespace Comment.Infrastructure.Services
                     userId: { $toString: '$reporterInfo._id' },
                     fullName: { 
                         $cond: {
-                            if: { $and: [{ $ne: ['$reporterInfo.name', null] }, { $ne: ['$reporterInfo.surName', null] }] },
-                            then: { $concat: ['$reporterInfo.name', ' ', '$reporterInfo.surName'] },
+                            if: { $and: [{ $ne: ['$reporterInfo.Name', null] }, { $ne: ['$reporterInfo.Surname', null] }] },
+                            then: { $concat: ['$reporterInfo.Name', ' ', '$reporterInfo.Surname'] },
                             else: 'Bilinmeyen Kullanıcı'
                         }
                     }
@@ -731,8 +731,8 @@ namespace Comment.Infrastructure.Services
                         userId: { $toString: '$commenterInfo._id' },
                         fullName: { 
                             $cond: {
-                                if: { $and: [{ $ne: ['$commenterInfo.name', null] }, { $ne: ['$commenterInfo.surName', null] }] },
-                                then: { $concat: ['$commenterInfo.name', ' ', '$commenterInfo.surName'] },
+                                if: { $and: [{ $ne: ['$commenterInfo.Name', null] }, { $ne: ['$commenterInfo.Surname', null] }] },
+                                then: { $concat: ['$commenterInfo.Name', ' ', '$commenterInfo.Surname'] },
                                 else: 'Bilinmeyen Kullanıcı'
                             }
                         }
@@ -742,8 +742,8 @@ namespace Comment.Infrastructure.Services
                     userId: { $toString: '$reporterInfo._id' },
                     fullName: { 
                         $cond: {
-                            if: { $and: [{ $ne: ['$reporterInfo.name', null] }, { $ne: ['$reporterInfo.surName', null] }] },
-                            then: { $concat: ['$reporterInfo.name', ' ', '$reporterInfo.surName'] },
+                            if: { $and: [{ $ne: ['$reporterInfo.Name', null] }, { $ne: ['$reporterInfo.Surname', null] }] },
+                            then: { $concat: ['$reporterInfo.Name', ' ', '$reporterInfo.Surname'] },
                             else: 'Bilinmeyen Kullanıcı'
                         }
                     }
@@ -958,8 +958,8 @@ namespace Comment.Infrastructure.Services
                         userId: { $toString: '$commenterInfo._id' },
                         fullName: { 
                             $cond: {
-                                if: { $and: [{ $ne: ['$commenterInfo.name', null] }, { $ne: ['$commenterInfo.surName', null] }] },
-                                then: { $concat: ['$commenterInfo.name', ' ', '$commenterInfo.surName'] },
+                                if: { $and: [{ $ne: ['$commenterInfo.Name', null] }, { $ne: ['$commenterInfo.Surname', null] }] },
+                                then: { $concat: ['$commenterInfo.Name', ' ', '$commenterInfo.Surname'] },
                                 else: 'Bilinmeyen Kullanıcı'
                             }
                         }
@@ -969,8 +969,8 @@ namespace Comment.Infrastructure.Services
                     userId: { $toString: '$reporterInfo._id' },
                     fullName: { 
                         $cond: {
-                            if: { $and: [{ $ne: ['$reporterInfo.name', null] }, { $ne: ['$reporterInfo.surName', null] }] },
-                            then: { $concat: ['$reporterInfo.name', ' ', '$reporterInfo.surName'] },
+                            if: { $and: [{ $ne: ['$reporterInfo.Name', null] }, { $ne: ['$reporterInfo.Surname', null] }] },
+                            then: { $concat: ['$reporterInfo.Name', ' ', '$reporterInfo.Surname'] },
                             else: 'Bilinmeyen Kullanıcı'
                         }
                     }
@@ -1138,8 +1138,8 @@ namespace Comment.Infrastructure.Services
                             userId: { $toString: '$reporterInfo._id' },
                             fullName: { 
                                 $cond: {
-                                    if: { $and: [{ $ne: ['$reporterInfo.name', null] }, { $ne: ['$reporterInfo.surName', null] }] },
-                                    then: { $concat: ['$reporterInfo.name', ' ', '$reporterInfo.surName'] },
+                                    if: { $and: [{ $ne: ['$reporterInfo.Name', null] }, { $ne: ['$reporterInfo.Surname', null] }] },
+                                    then: { $concat: ['$reporterInfo.Name', ' ', '$reporterInfo.Surname'] },
                                     else: 'Bilinmeyen Kullanıcı'
                                 }
                             }
@@ -1171,8 +1171,8 @@ namespace Comment.Infrastructure.Services
                     userId: { $toString: '$commenter._id' },
                     fullName: { 
                         $cond: {
-                            if: { $and: [{ $ne: ['$commenter.name', null] }, { $ne: ['$commenter.surName', null] }] },
-                            then: { $concat: ['$commenter.name', ' ', '$commenter.surName'] },
+                            if: { $and: [{ $ne: ['$commenter.Name', null] }, { $ne: ['$commenter.Surname', null] }] },
+                            then: { $concat: ['$commenter.Name', ' ', '$commenter.Surname'] },
                             else: 'Bilinmeyen Kullanıcı'
                         }
                     }

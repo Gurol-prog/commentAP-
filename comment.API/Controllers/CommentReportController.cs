@@ -1,6 +1,7 @@
 using Comment.Application.Interfaces;
 using Comment.Domain.DTOs;
 using Comment.Domain.Entities;
+using Comment.Domain.Enums;
 using Comment.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
@@ -20,7 +21,7 @@ namespace Comment.API.Controllers
 
         // Kullanıcı bir yorumu şikayet eder
         [HttpPost("submit")]
-        public async Task<IActionResult> SubmitReport([FromQuery] string userId, [FromQuery] string commentId, [FromQuery] string reason, [FromQuery] string? description = null)
+        public async Task<IActionResult> SubmitReport([FromQuery] string userId, [FromQuery] string commentId, [FromQuery] ReportReason reason, [FromQuery] string? description = null)
         {
             try
             {
@@ -28,7 +29,7 @@ namespace Comment.API.Controllers
                 {
                     ReporterUserId = userId,
                     CommentId = commentId,
-                    Reason = reason,
+                    Reason = reason.ToString(),
                     Description = description
                 };
 
@@ -58,6 +59,7 @@ namespace Comment.API.Controllers
                 return StatusCode(500, response);
             }
         }
+
 
         // Admin: Bekleyen şikayetleri listele (incelenmemiş olanlar)
         [HttpGet("pending")]

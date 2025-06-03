@@ -8,10 +8,10 @@ namespace Comment.Domain.Entities
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; } = null!;
-        [BsonElement("name")]
+        [BsonElement("Name")]
         public string Name { get; set; } = null!;
-        [BsonElement("surName")]
-        public string SurName { get; set; } = null!;
+        [BsonElement("Surname")]
+        public string Surname { get; set; } = null!;
         
     }
 }
